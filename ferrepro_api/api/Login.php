@@ -1,31 +1,37 @@
 <?php
-
-// Mostrar errores SOLO para depuración
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-header("Content-Type: application/json");
+// =============================================
+// ARCHIVO: login.php
+// FUNCIÓN: Iniciar sesión de usuarios en FerrePro
+// =============================================
 
 include("../config/db.php");
 
+// Recibir datos enviados en formato JSON
 $data = json_decode(file_get_contents("php://input"), true);
 
-$usuario = $data["usuario"] ?? null;
-$password = $data["password"] ?? null;
-
-if (!$usuario || !$password) {
-    echo json_encode(["error" => "Usuario y contraseña obligatorios"]);
+// Validar que no estén vacíos
+if (empty($data["email"]) || empty($data["password"])) {
+    echo json_encode(["error" => "Email y contraseña obligatorios"]);
     exit;
 }
 
-$sql = $conn->prepare("SELECT * FROM usuarios WHERE usuario = ?");
-$sql->bind_param("s", $usuario);
-$sql->execute();
-$resultado = $sql->get_result();
+// Asignación de variables
+$email = $data["email"];
+$password = $data["password"];
 
-if ($resultado->num_rows === 1) {
-    $user = $resultado->fetch_assoc();
+// Buscar el usuario por email
+$sql = "SELECT * FROM usuarios WHERE email = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $email);
+$stmt->execute();
 
+$result = $stmt->get_result();
+
+// Verificar si el usuario existe
+if ($result->num_rows > 0) {
+    $user = $result->fetch_assoc();
+
+    // Verificación de la contraseña
     if (password_verify($password, $user["password"])) {
         echo json_encode([
             "success" => "Login correcto",
@@ -38,3 +44,8 @@ if ($resultado->num_rows === 1) {
 } else {
     echo json_encode(["error" => "Usuario no encontrado"]);
 }
+
+// Cierre de la conexión
+$stmt->close();
+$conn->close();
+?>
