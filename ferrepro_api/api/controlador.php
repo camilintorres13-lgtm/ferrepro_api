@@ -1,47 +1,18 @@
 <?php
-include("../config/db.php");
+// =============================================
+// ARCHIVO: controlador.php
+// FUNCIÓN: Controlar si es login o registro
+// =============================================
+
+// Recibir datos desde la interfaz
 $data = json_decode(file_get_contents("php://input"), true);
 
-if ($data["tipo"] == "registro") {
-
-    $stmt = $conn->prepare("INSERT INTO usuarios 
-    (nombre, email, password, rol, fecha_nacimiento, telefono, direccion, sucursal, codigo_admin) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-    $hash = password_hash($data["password"], PASSWORD_DEFAULT);
-
-    $stmt->bind_param(
-        "sssssssss",
-        $data["nombre"],
-        $data["email"],
-        $hash,
-        $data["rol"],
-        $data["fecha"],
-        $data["telefono"],
-        $data["direccion"],
-        $data["sucursal"],
-        $data["codigo_admin"]
-    );
-
-    $stmt->execute();
-    echo json_encode(["success"=>"Registrado correctamente"]);
+// Validar tipo de operación
+if ($data["tipo"] === "registro") {
+    include("register.php");
+} else if ($data["tipo"] === "login") {
+    include("login.php");
+} else {
+    echo json_encode(["error" => "Operación no válida"]);
 }
-
-if ($data["tipo"] == "login") {
-
-    $stmt = $conn->prepare("SELECT * FROM usuarios WHERE email=?");
-    $stmt->bind_param("s", $data["email"]);
-    $stmt->execute();
-    $res = $stmt->get_result()->fetch_assoc();
-
-    if (!$res || !password_verify($data["password"], $res["password"])) {
-        echo json_encode(["error"=>"Credenciales inválidas"]);
-        exit;
-    }
-
-    echo json_encode([
-        "success"=>"Login correcto",
-        "rol"=>$res["rol"],
-        "nombre"=>$res["nombre"]
-    ]);
-}
+?>
